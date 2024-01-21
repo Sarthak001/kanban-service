@@ -41,3 +41,4 @@ service.register_blueprint(api, url_prefix="/api/v1")
 
 # import models to let the migrate tool know
 from src.models.user_model import User
+from src.models.user_roles_model import UserRole

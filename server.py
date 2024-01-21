@@ -1,4 +1,4 @@
-from src import config, app
+from src import config, service
 
 if __name__ == "__main__":
     service.run(host=config.HOST,
