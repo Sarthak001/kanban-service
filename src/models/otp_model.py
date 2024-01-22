@@ -5,10 +5,6 @@ from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql import func
 
 
-def set_expire():
-    return (datetime.now() + timedelta(minutes=10))
-
-
 class Otp(db.Model):
     __tablename__ = 'otp'
     id = db.Column(db.Integer(), primary_key=True, nullable=False)
