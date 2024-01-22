@@ -1,5 +1,7 @@
 from src import db
 from datetime import datetime
+import sqlalchemy
+from sqlalchemy.sql.sqltypes import TIMESTAMP
 
 
 class User(db.Model):
@@ -13,9 +15,12 @@ class User(db.Model):
     email = db.Column(db.String(80), unique=True, nullable=False)
     passwd = db.Column(db.String(120), nullable=False)
     is_active = db.Column(db.Boolean, nullable=False)
-    last_login = db.Column(db.DateTime, nullable=False, default=datetime.now())
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
+    last_login = db.Column(TIMESTAMP(timezone=True), nullable=False,
+                           server_default=sqlalchemy.sql.expression.text('now()'))
+    created_at = db.Column(TIMESTAMP(timezone=True), nullable=False,
+                           server_default=sqlalchemy.sql.expression.text('now()'))
+    updated_at = db.Column(TIMESTAMP(timezone=True), nullable=False,
+                           server_default=sqlalchemy.sql.expression.text('now() ON UPDATE CURRENT_TIMESTAMP'))
 
     role = db.relationship("UserRole")
     otp = db.relationship("Otp", backref='users')
