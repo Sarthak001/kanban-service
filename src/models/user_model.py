@@ -5,8 +5,7 @@ from datetime import datetime
 class User(db.Model):
     __tablename__ = "users"
     user_id = db.Column(db.Integer(), primary_key=True)
-    role_id_fk = db.Column(db.Integer(), db.ForeignKey(
-        'user_roles.role_id'), nullable=False)
+    role_id_fk = db.Column(db.Integer(), db.ForeignKey('user_roles.role_id'), nullable=False)
     user_name = db.Column(db.String(20), unique=True, nullable=False)
     first_name = db.Column(db.String(20))
     last_name = db.Column(db.String(20))
