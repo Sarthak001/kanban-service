@@ -9,10 +9,15 @@ import os
 auth = Blueprint("auth", __name__)
 
 # route for signup api/users/signup
-@auth.route('/signup', methods = ["POST"])
+
+
+@auth.route('/signup', methods=["POST"])
 def handle_signup():
     return
+
 # route for login api/users/signin
-@auth.route('/signin', methods = ["POST"])
+
+
+@auth.route('/signin', methods=["POST"])
 def handle_login():
     return
