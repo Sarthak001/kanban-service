@@ -6,13 +6,13 @@ import jwt
 import os
 
 # user controller blueprint to be registered with api blueprint
-users = Blueprint("users", __name__)
+auth = Blueprint("auth", __name__)
 
 # route for signup api/users/signup
-@users.route('/signup', methods = ["POST"])
+@auth.route('/signup', methods = ["POST"])
 def handle_signup():
     return
 # route for login api/users/signin
-@users.route('/signin', methods = ["POST"])
+@auth.route('/signin', methods = ["POST"])
 def handle_login():
     return
