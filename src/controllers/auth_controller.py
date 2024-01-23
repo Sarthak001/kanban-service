@@ -11,51 +11,59 @@ from random import randint
 # user controller blueprint to be registered with api blueprint
 auth = Blueprint("auth", __name__)
 
-# route for signup api/users/signup
-
-
-@auth.route('/signup', methods=["GET"])
+# route for signup api/v1/auth/signup
+@auth.route('/signup', methods=["POST"])
 def handle_signup():
-    data = request.json
-    if "first_name" in data and "last_name" in data and "email" in data and "password" in data:
-        user = User.query.filter_by(email=data["email"]).first()
-        if user:
-            return Response(response=json.dumps({'status': "failed", "message": "User already exists"}))
-        else:
-            role = UserRole.query.filter_by(role_name="normal user").first()
-            # print(role.role_id)
-            user_obj = User(
-                role_id_fk=role.role_id,
-                user_name=data['first_name'] +
-                data['last_name'] + str(randint(10, 99)),
-                first_name=data['first_name'],
-                last_name=data['last_name'],
-                email=data['email'],
-                passwd=bcrypt.generate_password_hash(
-                    str(data['password'])).decode('utf-8'),
-                is_active=True,
-                last_login=datetime.now()
-            )
-            db.session.add(user_obj)
-            db.session.commit()
+    try:
+        data = request.json
+        if "first_name" in data and "last_name" in data and "email" in data and "password" in data:
+            user = User.query.filter_by(email=data["email"]).first()
+            if user:
+                return Response(response=json.dumps({'status': "failed", "message": "User already exists"}),status=200,mimetype="application/json")
+            else:
+                role = UserRole.query.filter_by(role_name="normal user").first()
+                user_obj = User(
+                    role_id_fk=role.role_id,
+                    user_name=data['first_name'] + data['last_name'] + str(randint(10, 99)),
+                    first_name=data['first_name'],
+                    last_name=data['last_name'],
+                    email=data['email'],
+                    passwd=bcrypt.generate_password_hash(data['password']).decode('utf-8'),
+                    is_active=False,
+                    last_login=datetime.now()
+                )
+                db.session.add(user_obj)
+                db.session.commit()
+                return Response(
+                    json.dumps(
+                        {
+                            "status" : "success",
+                            "error" : None,
+                            "data" : {
+                                "message" : f"User created successfully. Please verfiy your email id. Verification link has been sent to Email:{user_obj.email}"
+                            }
+                        }),
+                    status=201,
+                    mimetype="application/json"
+                    )
+    except Exception as e:
+        print(e)
+        return Response(
+            json.dumps({
+                "status": "failed",
+                "error": "Internal server error",
+                "data": None
+            }),
+            status=500,
+            mimetype="application/json"
+        )
 
-            payload = {
-                'firstname': user_obj.first_name,
-                'lastname': user_obj.last_name,
-                'username': user_obj.user_name,
-                'email': user_obj.email,
-            }
-            token = jwt.encode(payload=payload, key=os.getenv(
-                'SECRET_KEY'), algorithm='HS256')
 
-            return Response(response=json.dumps({"status": "Sucess", "Message": f"User successfully created for {data['first_name']} as {user_obj.user_name}", "token": token}))
-    else:
-        return Response(response=json.dumps({"status": "failed", "message": "Enter correct details"}))
+
+
 
 
 # route for login api/users/signin
-
-
 @auth.route('/signin', methods=["POST"])
 def handle_login():
     return
