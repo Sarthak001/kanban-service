@@ -1,5 +1,8 @@
+import random
+
+# Genrate a 6 digit otp
 
 
-### Genrate a 6 digit otp
 def GenerateOtp():
-    pass
+    otp = random.randint(100000, 999999)
+    return otp
