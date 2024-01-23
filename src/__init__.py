@@ -11,7 +11,7 @@ from flask_bcrypt import Bcrypt
 load_dotenv()
 
 # declaring flask application
-service = Flask(__name__)
+service = Flask(__name__,static_url_path='/static')
 
 # calling the dev configuration
 config = Config().dev_config

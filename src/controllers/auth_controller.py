@@ -15,13 +15,6 @@ auth = Blueprint("auth", __name__)
 
 @auth.route('/signup', methods=["GET"])
 def handle_signup():
-    user_obj = User.query.filter_by(user_id=1).first()
-    otp_obj = Otp(
-        user_id_fk = user_obj.user_id,
-        otp = 567834
-    )
-    db.session.add(otp_obj)
-    db.session.commit()
     return "hello world"
 
 
@@ -31,3 +24,13 @@ def handle_signup():
 @auth.route('/signin', methods=["POST"])
 def handle_login():
     return
+
+
+@auth.route('forgotpassword',methods=["GET","POST"])
+def handle_forgotpassword():
+    pass
+
+
+@auth.route('resendotp',methods=["GET"])
+def handle_resendotp():
+    pass
