@@ -1,11 +1,13 @@
 from flask import request, Response, json, Blueprint
-from flask_mail import Message
 from src.models.user_model import User
 from src.models.user_role_model import UserRole
 from src.models.otp_model import Otp
-from src import bcrypt, db, mail
+from src import bcrypt, db,config
 from src.utils import otp_service
+from src.utils import mail_service
 from datetime import datetime
+import base64 
+
 import jwt
 import os
 from random import randint
@@ -24,10 +26,9 @@ def handle_signup():
             if user:
                 return Response(response=json.dumps({'status': "failed", "message": "User already exists"}), status=200, mimetype="application/json")
             else:
-                role = UserRole.query.filter_by(
-                    role_name="normal user").first()
+                role = db.session.query(UserRole.role_id).filter(UserRole.role_name == "normal user").first()
                 user_obj = User(
-                    role_id_fk=role.role_id,
+                    role_id_fk=role[0],
                     user_name=data['first_name'] +
                     data['last_name'] + str(randint(10, 99)),
                     first_name=data['first_name'],
@@ -36,22 +37,24 @@ def handle_signup():
                     passwd=bcrypt.generate_password_hash(
                         data['password']).decode('utf-8'),
                     is_active=False,
-                    last_login=datetime.now()
                 )
                 db.session.add(user_obj)
                 db.session.commit()
-                signed_up = user_obj
-                msg = Message("Kanban Board email verification code", sender="0176cs171103@gmail.com",
-                              recipients=[f"{user_obj.email}"])
-                otp_generated = otp_service.GenerateOtp()
+
+                one_time_code = otp_service.GenerateOtp()
                 otp_obj = Otp(
                     user_id_fk = user_obj.user_id,
-                    otp = otp_generated
+                    otp = one_time_code
                 )
                 db.session.add(otp_obj)
                 db.session.commit()
-                msg.body = str(otp_generated)
-                mail.send(msg)
+
+                base64_bytes = (base64.b64encode((f"{user_obj.email}:{one_time_code}").encode("UTF-8"))).decode("UTF-8")
+                mailData = {"host":config.HOST,
+                            "recipient" : user_obj.email, 
+                            "bodydata":base64_bytes
+                           }
+                mail_service.SendMail("email verification",mailData)
                 return Response(
                     json.dumps(
                         {
@@ -64,9 +67,7 @@ def handle_signup():
                     status=201,
                     mimetype="application/json"
                 )
-
     except Exception as e:
-        print(e)
         return Response(
             json.dumps({
                 "status": "failed",
@@ -80,31 +81,81 @@ def handle_signup():
 
 @auth.route('/verifyEmail',methods = ["GET"])
 def handle_verifyEmail():
-    email_res = request.args.get('email')
-    otp_res = int(request.args.get('otp'))
-    user_obj= User.query.filter_by(email = email_res).first()
-    if user_obj:
-        otp_db = db.session.query(Otp).order_by(Otp.id.desc()).first()
-        if otp_res == otp_db.otp:
-            user_obj.is_active = True
-            db.session.commit()
-            return "Sucessfully Verified"     
-        return "Wrong Otp"
-    else:
-        return "User does not exist. Please register again!!"
+    try:
+        token = (base64.b64decode((request.args.get('token')).encode("UTF-8"))).decode("UTF-8")
+        email, otp, *_ = token.split(":")
+        otp = int(otp)
+        db_res = db.session.query(User.email,Otp.otp,Otp.expire_in).join(User.otp).filter(User.email==email,Otp.otp==int(otp)).order_by(Otp.id.desc()).first()
+        if db_res:
+            if db_res[2] <= datetime.now():
+                return Response(
+                        json.dumps(
+                            {
+                                "status": "failed",
+                                "error": None,
+                                "data": {
+                                    "message": f"Verifcation Link expired"
+                                }
+                            }),
+                        status=200,
+                        mimetype="application/json"
+                    )   
+            if otp == db_res[1]:
+                user_obj=User.query.filter_by(email=email).first()
+                user_obj.is_active = True
+                db.session.commit()
+                return Response(
+                        json.dumps(
+                            {
+                                "status": "success",
+                                "error": None,
+                                "data": {
+                                    "message": f"User email verified successfully"
+                                }
+                            }),
+                        status=200,
+                        mimetype="application/json"
+                    )   
+            return Response(
+                json.dumps({
+                    "status": "failed",
+                    "error": "Failed to verify user email",
+                    "data": None
+                }),
+                status=200,
+                mimetype="application/json"
+            )
+        else:
+            return Response(
+                json.dumps({
+                    "status": "failed",
+                    "error": "user is not registered",
+                    "data": None
+                }),
+                status=200,
+                mimetype="application/json"
+            )
+    except Exception as e:
+        return Response(json.dumps({
+                    "status": "failed",
+                    "error": "Internal server error",
+                    "data": None
+                }),
+                status=500,
+                mimetype="application/json"
+            )
+
 
 # route for login api/users/signin
 @auth.route('/signin', methods=["POST"])
 def handle_login():
+    return "ohh yess"
 
-    return
-
-
-@auth.route('forgotpassword', methods=["GET", "POST"])
+@auth.route('/forgotpassword', methods=["GET", "POST"])
 def handle_forgotpassword():
     pass
 
 
-@auth.route('resendotp', methods=["GET"])
+@auth.route('/resendotp', methods=["GET"])
 def handle_resendotp():
     pass
