@@ -264,6 +264,7 @@ def handle_verifyLogin():
                                 "status": "success",
                                 "error": None,
                                 "data": {
+                                    "token" : jwttoken,
                                     "message": f"Login successfull!!"
                                 }
                             }),
