@@ -10,6 +10,6 @@ def SendMail(requestType,mailDetails):
         msg.html = render_template('mail_verification.html',data={"host": mailDetails["host"] ,"token":mailDetails["bodydata"]})
         mail.send(msg)
     elif(requestType == "user login verification"):
-        msg = Message(mailDetails.subject, sender="audit-noreply@gmail.com",recipients=[mailDetails.recipient])
-        msg.html = render_template('mail_otp.html',data={"token":mailDetails.bodydata})
+        msg = Message("Login Otp Verification", sender="audit-noreply@gmail.com",recipients=[mailDetails["recipient"]])
+        msg.html = render_template('mail_otp.html',data={"token":mailDetails["bodydata"]})
         mail.send(msg)
