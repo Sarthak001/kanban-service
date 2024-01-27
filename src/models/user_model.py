@@ -11,9 +11,11 @@ class User(db.Model):
     email = db.Column(db.String(80), unique=True, nullable=False)
     passwd = db.Column(db.String(120), nullable=False)
     is_active = db.Column(db.Boolean, nullable=False)
-    last_login = db.Column(db.DateTime,nullable=True)
+    last_login = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, onupdate=db.func.now(), nullable=True)
 
-    role = db.relationship("UserRole")
+    role = db.relationship("UserRole",backref="user_roles")
     otp = db.relationship("Otp", backref='users')
+    verification = db.relationship("UserVerification",backref="user_verification")
+    reset_pd = db.relationship("PasswordReset",backref="password_resets")
