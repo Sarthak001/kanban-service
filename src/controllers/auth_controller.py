@@ -7,6 +7,7 @@ from src.models.user_model import User
 from src.models.user_role_model import UserRole
 from src.models.otp_model import Otp
 from src import bcrypt, db, config
+from src.models.verification_model import UserVerification
 from src.utils import otp_service, mail_service
 from datetime import datetime
 import base64
@@ -26,31 +27,33 @@ def handle_signup():
         if "first_name" in data and "last_name" in data and "email" in data and "password" in data:
             user = User.query.filter_by(email=data["email"]).first()
             if user:
-                return Response(response=json.dumps({'status': "failed", "message": "User already exists"}), status=200,
+                return Response(response=json.dumps({"status": "failed", "message": "User already exists"}), status=200,
                                 mimetype="application/json")
             else:
                 role = db.session.query(UserRole.role_id).filter(UserRole.role_name == "normal user").first()
                 user_obj = User(
                     role_id_fk=role[0],
-                    user_name=data['first_name'] + data['last_name'] + str(randint(10, 99)),
-                    first_name=data['first_name'],
-                    last_name=data['last_name'],
-                    email=data['email'],
+                    user_name=data["first_name"] + data["last_name"] + str(randint(10, 99)),
+                    first_name=data["first_name"],
+                    last_name=data["last_name"],
+                    email=data["email"],
                     passwd=bcrypt.generate_password_hash(data['password']).decode('utf-8'),
                     is_active=False,
                 )
                 db.session.add(user_obj)
                 db.session.commit()
 
-                one_time_code = otp_service.GenerateOtp()
-                otp_obj = Otp(
+                token_hash = hashlib.md5(f"{user_obj['email']}".encode('utf-8')).hexdigest()
+
+                verification = UserVerification(
                     user_id_fk=user_obj.user_id,
-                    otp=one_time_code
+                    token=token_hash,
+                    consumed=False
                 )
-                db.session.add(otp_obj)
+                db.session.add(verification)
                 db.session.commit()
 
-                base64_bytes = (base64.b64encode(f"{user_obj.email}:{one_time_code}".encode("UTF-8"))).decode("UTF-8")
+                base64_bytes = (base64.b64encode(f"{user_obj.email}:{token_hash}".encode("UTF-8"))).decode("UTF-8")
                 mail_data = {"host": config.HOST,
                              "recipient": user_obj.email,
                              "body-data": base64_bytes
@@ -86,12 +89,10 @@ def handle_signup():
 def handle_verifyemail():
     try:
         token = (base64.b64decode((request.args.get('token')).encode("UTF-8"))).decode("UTF-8")
-        email, otp, *_ = token.split(":")
-        otp = int(otp)
-        db_res = db.session.query(User.email, Otp.otp, Otp.expire_in).join(User.otp).filter(User.email == email,
-                                                                                            Otp.otp == int(
-                                                                                                otp)).order_by(
-            Otp.id.desc()).first()
+        email, token, *_ = token.split(":")
+        db_res = db.session.query(User.email, UserVerification.token, UserVerification.expire_in).join(
+            User.verification).filter(User.email == email, UserVerification.token == token).order_by(
+            UserVerification.id.desc()).first()
         if db_res:
             if db_res[2] <= datetime.now():
                 return Response(
@@ -106,28 +107,18 @@ def handle_verifyemail():
                     status=200,
                     mimetype="application/json"
                 )
-            if otp == db_res[1]:
-                user_obj = User.query.filter_by(email=email).first()
-                user_obj.is_active = True
-                db.session.commit()
-                return Response(
-                    json.dumps(
-                        {
-                            "status": "success",
-                            "error": None,
-                            "data": {
-                                "message": f"User email verified successfully"
-                            }
-                        }),
-                    status=200,
-                    mimetype="application/json"
-                )
+            user_obj = User.query.filter_by(email=email).first()
+            user_obj.is_active = True
+            db.session.commit()
             return Response(
-                json.dumps({
-                    "status": "failed",
-                    "error": "Failed to verify user email",
-                    "data": None
-                }),
+                json.dumps(
+                    {
+                        "status": "success",
+                        "error": None,
+                        "data": {
+                            "message": f"User email verified successfully"
+                        }
+                    }),
                 status=200,
                 mimetype="application/json"
             )
@@ -237,9 +228,9 @@ def handle_verifysignin():
     try:
         email = request.args.get('email')
         otp = int(request.args.get('otp'))
-        db_res = db.session.query(User.email, Otp.otp, Otp.expire_in).join(User.otp).filter(User.email == email,
-                                                                                            Otp.otp == otp).order_by(
-            Otp.id.desc()).first()
+        db_res = db.session.query(User.email, Otp.otp, Otp.expire_in) \
+            .join(User.otp).filter(User.email == email, Otp.otp == otp) \
+            .order_by(Otp.id.desc()).first()
         if db_res:
             if db_res[2] <= datetime.now():
                 return Response(
@@ -355,7 +346,8 @@ def handle_forgotpassword(token):
         data = request.json
         if "email" in data and "password" in data:
 
-            db_res = db.session.query(User.is_active, PasswordReset.expire_in, PasswordReset.consumed).join(User.reset_pd).filter(
+            db_res = db.session.query(User.is_active, PasswordReset.expire_in, PasswordReset.consumed).join(
+                User.reset_pd).filter(
                 User.email == data["email"], PasswordReset.token == token).order_by(PasswordReset.id.desc()).first()
 
             if db_res[0] and db_res[1] <= datetime.now() and not db_res[2]:
@@ -387,14 +379,15 @@ def handle_resend(operation):
         user = User.query.filter_by(email=email).first()
         if user:
             if operation == "verification":
-                one_time_code = otp_service.GenerateOtp()
-                otp_obj = Otp(
+                token_hash = hashlib.md5(f"{user['email']}".encode('utf-8')).hexdigest()
+                verification = UserVerification(
                     user_id_fk=user.user_id,
-                    otp=one_time_code
+                    token=token_hash,
+                    consumed=False
                 )
-                db.session.add(otp_obj)
+                db.session.add(verification)
                 db.session.commit()
-                base64_bytes = (base64.b64encode(f"{user.email}:{one_time_code}".encode("UTF-8"))).decode("UTF-8")
+                base64_bytes = (base64.b64encode(f"{user.email}:{token_hash}".encode("UTF-8"))).decode("UTF-8")
                 mail_data = {"host": config.HOST,
                              "recipient": user.email,
                              "body-data": base64_bytes
