@@ -15,9 +15,12 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, onupdate=db.func.now(), nullable=True)
 
+
     role = db.relationship("UserRole",backref="user_roles")
     otp = db.relationship("Otp", backref='users')
     verification = db.relationship("UserVerification",backref="user_verification")
     reset_pd = db.relationship("PasswordReset",backref="password_resets")
     board = db.relationship("Board",backref = "users")
     board_member = db.relationship("BoardMember",backref = "users")
+    task = db.relationship("Task",backref = 'users')
+    sub_task = db.relationship("SubTask",backref= "users")

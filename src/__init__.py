@@ -60,5 +60,7 @@ from src.models.otp_model import Otp
 from src.models.board_model import Board
 from src.models.board_member import BoardMember
 from src.models.board_list import BoardList
+from src.models.task_model import Task
+from src.models.sub_task_model import SubTask
 
 
