@@ -57,5 +57,8 @@ service.register_blueprint(api, url_prefix="/api/v1")
 from src.models.user_model import User
 from src.models.user_role_model import UserRole
 from src.models.otp_model import Otp
+from src.models.board_model import Board
+from src.models.board_member import BoardMember
+from src.models.board_list import BoardList
 
 

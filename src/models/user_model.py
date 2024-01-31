@@ -19,3 +19,5 @@ class User(db.Model):
     otp = db.relationship("Otp", backref='users')
     verification = db.relationship("UserVerification",backref="user_verification")
     reset_pd = db.relationship("PasswordReset",backref="password_resets")
+    board = db.relationship("Board",backref = "users")
+    board_member = db.relationship("BoardMember",backref = "users")

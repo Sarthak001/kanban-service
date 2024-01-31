@@ -43,7 +43,8 @@ def handle_signup():
                 db.session.add(user_obj)
                 db.session.commit()
 
-                token_hash = hashlib.md5(f"{user_obj['email']}".encode('utf-8')).hexdigest()
+                print(user_obj.email)
+                token_hash = hashlib.md5(f"{user_obj.email}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".encode('utf-8')).hexdigest()
 
                 verification = UserVerification(
                     user_id_fk=user_obj.user_id,
@@ -73,6 +74,7 @@ def handle_signup():
                     mimetype="application/json"
                 )
     except Exception as e:
+        print(e)
         return Response(
             json.dumps({
                 "status": "failed",
@@ -154,7 +156,7 @@ def handle_signin():
                 # checking for password match
                 if bcrypt.check_password_hash(user.passwd, data["password"]):
                     # generating otp if password matched
-                    one_time_code = otp_service.GenerateOtp()
+                    one_time_code = str(otp_service.GenerateOtp())
                     otp_obj = Otp(
                         user_id_fk=user.user_id,
                         otp=one_time_code
@@ -222,7 +224,7 @@ def handle_signin():
         )
 
 
-# route for verifyLogin  api/v1/auth/verifyLogin
+# route for verifysignin  api/v1/auth/verifysignin
 @auth.route('/verifysignin', methods=["GET"])
 def handle_verifysignin():
     try:
@@ -378,8 +380,8 @@ def handle_resend(operation):
         email = request.args.get("email")
         user = User.query.filter_by(email=email).first()
         if user:
-            if operation == "verification":
-                token_hash = hashlib.md5(f"{user['email']}".encode('utf-8')).hexdigest()
+            if operation == "verification" and not user.is_active:
+                token_hash = hashlib.md5(f"{user.email}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".encode('utf-8')).hexdigest()
                 verification = UserVerification(
                     user_id_fk=user.user_id,
                     token=token_hash,
@@ -399,7 +401,7 @@ def handle_resend(operation):
                     mimetype="application/json"
                 )
             if operation == "otp":
-                one_time_code = otp_service.GenerateOtp()
+                one_time_code = str(otp_service.GenerateOtp())
                 otp_obj = Otp(
                     user_id_fk=user.user_id,
                     otp=one_time_code
@@ -424,7 +426,8 @@ def handle_resend(operation):
                     status=200,
                     mimetype="application/json"
                 )
-    except:
+    except Exception as e:
+        print(e)
         return Response(json.dumps({
             "status": "failed",
             "error": "Internal server error",
