@@ -14,6 +14,8 @@ import base64
 import jwt
 import os
 from random import randint
+import threading
+
 
 # user controller blueprint to be registered with api blueprint
 auth = Blueprint("auth", __name__)
@@ -59,7 +61,8 @@ def handle_signup():
                              "recipient": user_obj.email,
                              "body-data": base64_bytes
                              }
-                mail_service.send_mail("email verification", mail_data)
+                thread = threading.Thread(target=mail_service.send_mail, args=("email verification", mail_data))
+                thread.start()
                 return Response(
                     json.dumps(
                         {

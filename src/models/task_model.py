@@ -22,4 +22,4 @@ class Task(db.Model):
     due_date = db.Column(db.DateTime, default=customFunc(), nullable=False)
 
 
-    sub_task = db.relationship("sub_tasks",backref="tasks")
+    sub_task = db.relationship("SubTask",backref="tasks")
