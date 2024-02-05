@@ -7,7 +7,7 @@ from src.models.otp_model import Otp
 from src.models.board_model import Board
 from src import bcrypt, db, config
 from src.models.verification_model import UserVerification
-from src.utils import otp_service, mail_service
+from src.utils import otp_service, mail_service,get_CurrentUser
 from datetime import datetime
 import base64
 import jwt
@@ -21,22 +21,19 @@ board = Blueprint("board", __name__)
 @board.route('/createboard',methods = ['GET','POST'])
 def create_board():
     try:
-        
-        headers = request.headers
-        bearer = headers.get('Authorization')   # Bearer YourTokenHere
-        token = bearer.split()[1]
-        decoded_data = jwt.decode(jwt=token, key = os.getenv('SECRET_KEY'), algorithms=['HS256'])
-        print(decoded_data['email'])
-        db_res = db.session.query(User.user_id).filter(User.email == decoded_data['email']).first()
+        boardname = request.args.get("board_name")
+        decoded_data = get_CurrentUser.get_CurrentUser()
+        print(decoded_data)
+        db_res = db.session.query(User.user_id,User.is_active).filter(User.email == decoded_data['email']).first()
         if db_res:
-            if db_res[0] <= datetime.now():
+            if not db_res[1]:
                 return Response(
                     json.dumps(
                         {
                             "status": "failed",
                             "error": None,
                             "data": {
-                                "message": f"Login expired.Please Login again!!"
+                                "message": f"Please verify your email first!!"
                             }
                         }),
                     status=200,
@@ -44,7 +41,7 @@ def create_board():
                 )
             else:
                 board_obj = Board(
-                    board_name  = "Sprint2",
+                    board_name  = boardname,
                     board_owner_fk = db_res[0]
                 )
                 db.session.add(board_obj)
@@ -68,7 +65,7 @@ def create_board():
                             "status": "failed",
                             "error": None,
                             "data": {
-                                "message": f"db_res not found"
+                                "message": f"User does not exits or has not verified the email!!"
                             }
                         }),
                     status=200,
@@ -87,6 +84,55 @@ def create_board():
             mimetype="application/json"
         )
 
+
+# route for createboard  api/v1/board/getboard
+@board.route('/getboard',methods = ['GET'])
+def get_board():
+    try:
+        data = get_CurrentUser.get_CurrentUser()
+        db_res = db.session.query(Board.board_name,Board.created_at).filter(Board.board_owner_fk == data['user_id']).all()
+        board_details= []
+        for i in db_res:
+            board_details.append([json.dumps(i.board_name),json.dumps(i.created_at)])
+        if db_res:
+            return Response(
+                    json.dumps(
+                        {
+                            "status": "sucess",
+                            "error": None,
+                            "data": {
+                                "message": f"Boards owned by you:!!",
+                                "boards_details" : board_details
+                            }
+                        }),
+                    status=200,
+                    mimetype="application/json"
+                )
+        else:
+            return Response(
+                    json.dumps(
+                        {
+                            "status": "sucess",
+                            "error": None,
+                            "data": {
+                                "message": f"No Boards owned by you!!"
+                            }
+                        }),
+                    status=200,
+                    mimetype="application/json"
+                )
+    except Exception as e:
+        print(e)
+        return Response(
+                    json.dumps(
+                        {
+                            "status": "Failed",
+                            "error": "Internal Server Error",
+                            "data": None
+                        }),
+                    status=500,
+                    mimetype="application/json"
+                )
         
 
 
