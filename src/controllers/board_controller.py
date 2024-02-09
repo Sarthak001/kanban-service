@@ -1,12 +1,8 @@
 import hashlib
 from flask import request, Response, json, Blueprint
-from src.models.password_reset_model import PasswordReset
 from src.models.user_model import User
-from src.models.user_role_model import UserRole
-from src.models.otp_model import Otp
 from src.models.board_model import Board
 from src import bcrypt, db, config
-from src.models.verification_model import UserVerification
 from src.utils import otp_service, mail_service,user_service
 from datetime import datetime
 import base64
