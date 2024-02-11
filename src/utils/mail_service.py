@@ -14,7 +14,7 @@ def send_mail(request, mail_details):
         elif request == "user login verification":
             msg = Message("Sign In Otp Verification", sender="audit-noreply@gmail.com",
                         recipients=[mail_details["recipient"]])
-            msg.html = render_template('mail_otp.html', data={"otp": mail_details["otp"]})
+            msg.html = render_template('mail_otp.html', data={"otp": mail_details["otp"],"user_info": mail_details["user_info"]})
             mail.send(msg)
         elif request == "password reset":
             pass

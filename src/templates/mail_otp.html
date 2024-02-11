@@ -181,8 +181,7 @@
                             <!--[if mso]><style>.v-button {background: transparent;}</style><![endif]-->
                             <div align="center">
                               <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" style="height:44px; v-text-anchor:middle; width:178px;" arcsize="0%"  strokecolor="#000000" strokeweight="2px" fillcolor="#ffffff"><w:anchorlock/><center style="color:#000000;"><![endif]-->
-                              <a href="http://{{data.host}}:3000/api/v1/auth/verifyLogin?token={{data.token}}""target="
-                                _blank" class="v-button"
+                              <a class="v-button"
                                 style="box-sizing: border-box;display: inline-block;text-decoration: none;text-align: center;color: #000000; background-color: #ffffff; border-radius: 0px;  width:38%; max-width:100%; overflow-wrap: break-word; word-break: break-word; word-wrap:break-word; border-top-width: 2px; border-top-style: dashed; border-top-color: #000000; border-left-width: 2px; border-left-style: dashed; border-left-color: #000000; border-right-width: 2px; border-right-style: dashed; border-right-color: #000000; border-bottom-width: 2px; border-bottom-style: dashed; border-bottom-color: #000000;font-size: 20px;">
                                 <span style="display:block;padding:10px 20px;line-height:120%;"><span
                                     style="line-height: 24px;">{{ data.otp }}</span></span>
@@ -303,7 +302,7 @@
 
                             <div
                               style="font-family: 'Montserrat',sans-serif; font-size: 14px; line-height: 140%; text-align: left; word-wrap: break-word;">
-                              <p style="line-height: 140%;">This is a new Text block. Change the text.</p>
+                              <p style="line-height: 140%;">{{ data.user_info.user_agent }}</p>
                             </div>
 
                           </td>
@@ -372,7 +371,7 @@
 
                             <div
                               style="font-family: 'Montserrat',sans-serif; font-size: 14px; line-height: 140%; text-align: center; word-wrap: break-word;">
-                              <p style="line-height: 140%;">This is a new Text block. Change the text.</p>
+                              <p style="line-height: 140%;">{{ data.user_info.location.city }}</p>
                             </div>
 
                           </td>
@@ -441,7 +440,7 @@
 
                             <div
                               style="font-family: 'Montserrat',sans-serif; font-size: 14px; line-height: 140%; text-align: center; word-wrap: break-word;">
-                              <p style="line-height: 140%;">This is a new Text block. Change the text.</p>
+                              <p style="line-height: 140%;">{{ data.user_info.timestamp }}</p>
                             </div>
 
                           </td>

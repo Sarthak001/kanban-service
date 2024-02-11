@@ -15,6 +15,7 @@ import jwt
 import os
 from random import randint
 import threading
+from src.middlewares import capture_user_info
 
 
 # user controller blueprint to be registered with api blueprint
@@ -150,6 +151,7 @@ def handle_verifyemail():
 
 # route for signin api/v1/auth/signin
 @auth.route('/signin', methods=["POST"])
+@capture_user_info
 def handle_signin():
     try:
         data = request.json
@@ -170,7 +172,8 @@ def handle_signin():
                     otp = " ".join(one_time_code)
                     mail_data = {
                         "recipient": user.email,
-                        "otp": otp
+                        "otp": otp,
+                        "user_info" : request.user_info
                     }
                     mail_service.send_mail("user login verification", mail_data)
                     return Response(
