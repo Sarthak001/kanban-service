@@ -2,11 +2,14 @@ from flask import Flask
 from flask_mail import Mail
 import os
 from src.config.config import Config
+from src.config.logger_config import configure_logger
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 # for password hashing
 from flask_bcrypt import Bcrypt
+import logging
+from logging.handlers import FileHandler
 
 # loading environment variables
 load_dotenv()
@@ -20,8 +23,11 @@ if os.environ.get("ENV") == "PROD":
 else:
     config = Config().dev_config
 
-# making our application to use dev env
+# making our application to use the defined env
 service.env = config.ENV
+
+# initilzating logger for our application
+service.logger = configure_logger('app.log')
 
 # load the secret key defined in the .env file
 service.secret_key = os.environ.get("SECRET_KEY")
