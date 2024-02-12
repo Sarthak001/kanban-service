@@ -1,6 +1,5 @@
 import structlog
 import logging
-from logging.handlers import FileHandler
 
 def configure_logger(log_file_path=None):
     # Configure structlog
@@ -18,7 +17,7 @@ def configure_logger(log_file_path=None):
 
     # Add FileHandler if log_file_path is provided
     if log_file_path:
-        file_handler = FileHandler(log_file_path)
+        file_handler = logging.FileHandler(log_file_path)
         file_handler.setLevel(logging.INFO)
         file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] [%(name)s] %(message)s'))
         structlog.get_logger().handlers = [file_handler]

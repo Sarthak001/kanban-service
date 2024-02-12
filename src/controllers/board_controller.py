@@ -3,11 +3,12 @@ from flask import request, Response, json, Blueprint
 from src.models.user_model import User
 from src.models.board_model import Board
 from src import bcrypt, db, config
-from src.utils import otp_service, mail_service,user_service
+from src.utils import otp_service, mail_service
 from datetime import datetime
 import base64
 import jwt
 import os
+from src.middlewares.jwt_auth import jwt_required
 
 
 
@@ -15,10 +16,11 @@ board = Blueprint("board", __name__)
 
 # route for createboard  api/v1/board/createboard
 @board.route('/createboard',methods = ['GET','POST'])
+@jwt_required
 def create_board():
     try:
         boardname = request.args.get("board_name")
-        decoded_data = user_service.get_CurrentUser()
+        decoded_data = request.current_user
         print(decoded_data)
         db_res = db.session.query(User.user_id,User.is_active).filter(User.email == decoded_data['email']).first()
         if db_res:
@@ -84,9 +86,10 @@ def create_board():
 # route for getbaord  api/v1/board/getboard/<id : optional>
 @board.route('/getboard',methods = ['GET'])
 @board.route('/getboard/<int:id>',methods = ['GET'])
+@jwt_required
 def get_board(id = None):
     try:
-        data = user_service.get_CurrentUser()
+        data = request.current_user
         # print(id)
         if id == None:
             db_res = db.session.query(Board).filter(Board.board_owner_fk == int(data['user_id'])).all()
@@ -171,13 +174,14 @@ def get_board(id = None):
 
 # route for updateboard  api/v1/board/updateboard/<id>
 @board.route('/updateboard/<int:id>',methods = ['GET','PATCH'])
+@jwt_required
 def update_board(id):
     try:
         headers = request.args.items()
         d = {}
         for i,j in headers:
             d[i] = j
-        data = user_service.get_CurrentUser()
+        data = request.current_user
         board_obj = Board.query.filter_by(board_id=id).first()
         if board_obj and board_obj.board_owner_fk == int(data['user_id']):
             for key, value in d.items():
@@ -225,9 +229,10 @@ def update_board(id):
 
 # route for deleteboard  api/v1/board/deleteboard/<id>
 @board.route('/deleteboard/<int:id>',methods = ['DELETE'])
+@jwt_required
 def delete_board(id):
     try:
-        data = user_service.get_CurrentUser()
+        data = request.current_user
         board_obj = Board.query.filter_by(board_id=id).first()
         print(board_obj)
         if board_obj and board_obj.board_owner_fk == int(data['user_id']):

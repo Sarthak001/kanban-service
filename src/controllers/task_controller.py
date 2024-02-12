@@ -8,8 +8,7 @@ from src.models.board_model import Board
 from src.models.task_model import Task
 from src import bcrypt, db, config
 from src.models.verification_model import UserVerification
-from src.utils import otp_service, mail_service,user_service
-from datetime import datetime
+from src.utils import otp_service, mail_service
 import base64
 import jwt
 import os

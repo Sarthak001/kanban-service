@@ -8,8 +8,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 # for password hashing
 from flask_bcrypt import Bcrypt
-import logging
-from logging.handlers import FileHandler
 
 # loading environment variables
 load_dotenv()
@@ -27,7 +25,7 @@ else:
 service.env = config.ENV
 
 # initilzating logger for our application
-service.logger = configure_logger('app.log')
+service.logger = configure_logger(os.path.join(service.root_path, 'logfiles', 'service.log'))
 
 # load the secret key defined in the .env file
 service.secret_key = os.environ.get("SECRET_KEY")
