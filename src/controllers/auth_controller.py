@@ -1,7 +1,4 @@
-import hashlib
-
 from flask import request, Response, json, Blueprint, current_app
-
 from src.models.password_reset_model import PasswordReset
 from src.models.user_model import User
 from src.models.user_role_model import UserRole
@@ -16,11 +13,11 @@ import os
 from random import randint
 import threading
 from src.middlewares.user_info import capture_user_info
+import hashlib
 
 
 # user controller blueprint to be registered with api blueprint
 auth = Blueprint("auth", __name__)
-
 
 # route for signup api/v1/auth/signup
 @auth.route('/signup', methods=["POST"])
@@ -154,7 +151,7 @@ def handle_verifyemail():
 @capture_user_info
 def handle_signin():
     try:
-        current_app.logger.info('Testing the Login feature')
+        current_app.logger.info("asdsadasd")
         data = request.json
         if "email" and "password" in data:
             user = User.query.filter_by(email=data["email"]).first()
