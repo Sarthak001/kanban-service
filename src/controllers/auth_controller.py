@@ -14,6 +14,7 @@ from random import randint
 import threading
 from src.middlewares.user_info import capture_user_info
 import hashlib
+from src.repositories import user_repository,verification_repository
 
 
 # user controller blueprint to be registered with api blueprint
@@ -25,35 +26,17 @@ def handle_signup():
     try:
         data = request.json
         if "first_name" in data and "last_name" in data and "email" in data and "password" in data:
-            user = User.query.filter_by(email=data["email"]).first()
+            user = user_repository.get_user_by_email(data["email"])
             if user:
                 return Response(response=json.dumps({"status": "failed", "message": "User already exists"}), status=200,
                                 mimetype="application/json")
             else:
-                role = db.session.query(UserRole.role_id).filter(UserRole.role_name == "normal user").first()
-                user_obj = User(
-                    role_id_fk=role[0],
-                    user_name=data["first_name"] + data["last_name"] + str(randint(10, 99)),
-                    first_name=data["first_name"],
-                    last_name=data["last_name"],
-                    email=data["email"],
-                    passwd=bcrypt.generate_password_hash(data['password']).decode('utf-8'),
-                    is_active=False,
-                )
-                db.session.add(user_obj)
-                db.session.commit()
+                role = user_repository.get_user_role()
+                user_obj = user_repository.create_user(role[0],data["first_name"],data["last_name"],data["email"],data["password"])
 
                 print(user_obj.email)
                 token_hash = hashlib.md5(f"{user_obj.email}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".encode('utf-8')).hexdigest()
-
-                verification = UserVerification(
-                    user_id_fk=user_obj.user_id,
-                    token=token_hash,
-                    consumed=False
-                )
-                db.session.add(verification)
-                db.session.commit()
-
+                verification = verification_repository.create_verification(user_obj.user_id,token_hash)
                 base64_bytes = (base64.b64encode(f"{user_obj.email}:{token_hash}".encode("UTF-8"))).decode("UTF-8")
                 mail_data = {"host": config.HOST,
                              "recipient": user_obj.email,
@@ -110,7 +93,7 @@ def handle_verifyemail():
                     status=200,
                     mimetype="application/json"
                 )
-            user_obj = User.query.filter_by(email=email).first()
+            user_obj = user_repository.get_user_by_email(email)
             user_obj.is_active = True
             db.session.commit()
             return Response(
@@ -154,7 +137,7 @@ def handle_signin():
         current_app.logger.info("asdsadasd")
         data = request.json
         if "email" and "password" in data:
-            user = User.query.filter_by(email=data["email"]).first()
+            user = user_repository.get_user_by_email(data["email"])
             if user and user.is_active:
                 # checking for password match
                 if bcrypt.check_password_hash(user.passwd, data["password"]):
@@ -252,7 +235,7 @@ def handle_verifysignin():
                     mimetype="application/json"
                 )
             if otp == db_res[1]:
-                user_obj = User.query.filter_by(email=email).first()
+                user_obj = user_repository.get_user_by_email(email)
                 # create token
                 payload = {
                     'user_id': str(user_obj.user_id),
@@ -309,7 +292,7 @@ def handle_verifysignin():
 def handle_forgotpassword2():
     try:
         req_email = request.args.get("email")
-        user = User.query.filter_by(email=req_email).first()
+        user = user_repository.get_user_by_email(req_email)
         if user:
             passwd_obj = PasswordReset(
                 user_id_fk=user.user_id,
@@ -357,7 +340,7 @@ def handle_forgotpassword(token):
                 User.email == data["email"], PasswordReset.token == token).order_by(PasswordReset.id.desc()).first()
 
             if db_res[0] and db_res[1] <= datetime.now() and not db_res[2]:
-                user = User.query.filter_by(email=data["email"]).first()
+                user = user_repository.get_user_by_email(data["email"])
                 user.passwd = bcrypt.generate_password_hash(data['password']).decode('utf-8')
                 db.session.add(user)
                 db.session.commit()
@@ -382,17 +365,11 @@ def handle_forgotpassword(token):
 def handle_resend(operation):
     try:
         email = request.args.get("email")
-        user = User.query.filter_by(email=email).first()
+        user = user_repository.get_user_by_email(email)
         if user:
             if operation == "verification" and not user.is_active:
                 token_hash = hashlib.md5(f"{user.email}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".encode('utf-8')).hexdigest()
-                verification = UserVerification(
-                    user_id_fk=user.user_id,
-                    token=token_hash,
-                    consumed=False
-                )
-                db.session.add(verification)
-                db.session.commit()
+                verification = verification_repository.create_verification(user.user_id,token_hash)
                 base64_bytes = (base64.b64encode(f"{user.email}:{token_hash}".encode("UTF-8"))).decode("UTF-8")
                 mail_data = {"host": config.HOST,
                              "recipient": user.email,
