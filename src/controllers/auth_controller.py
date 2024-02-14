@@ -1,20 +1,15 @@
 from flask import request, Response, json, Blueprint, current_app
-from src.models.password_reset_model import PasswordReset
-from src.models.user_model import User
-from src.models.user_role_model import UserRole
-from src.models.otp_model import Otp
-from src import bcrypt, db, config
-from src.models.verification_model import UserVerification
-from src.utils import otp_service, mail_service
+from src import bcrypt, config
+from src.utils import mail_service
+from src.repositories import user_repository,verification_repository
 from datetime import datetime
 import base64
 import jwt
 import os
-from random import randint
 import threading
 from src.middlewares.user_info import capture_user_info
 import hashlib
-from src.repositories import user_repository,verification_repository
+from sqlalchemy import exc
 
 
 # user controller blueprint to be registered with api blueprint
@@ -57,6 +52,18 @@ def handle_signup():
                     status=201,
                     mimetype="application/json"
                 )
+            
+    except exc.SQLAlchemyError as e:
+        current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
+        return Response(json.dumps({
+            "status": "failed",
+            "error": "error occured during DB Operation ",
+            "data": None
+        }),
+            status=500,
+            mimetype="application/json"
+        )
+    
     except Exception as e:
         print(e)
         return Response(
@@ -76,9 +83,7 @@ def handle_verifyemail():
     try:
         token = (base64.b64decode((request.args.get('token')).encode("UTF-8"))).decode("UTF-8")
         email, token, *_ = token.split(":")
-        db_res = db.session.query(User.email, UserVerification.token, UserVerification.expire_in).join(
-            User.verification).filter(User.email == email, UserVerification.token == token).order_by(
-            UserVerification.id.desc()).first()
+        db_res = verification_repository.get_verification(email,token)
         if db_res:
             if db_res[2] <= datetime.now():
                 return Response(
@@ -94,8 +99,7 @@ def handle_verifyemail():
                     mimetype="application/json"
                 )
             user_obj = user_repository.get_user_by_email(email)
-            user_obj.is_active = True
-            db.session.commit()
+            user_repository.update_user_active(user_obj)
             return Response(
                 json.dumps(
                     {
@@ -118,6 +122,18 @@ def handle_verifyemail():
                 status=200,
                 mimetype="application/json"
             )
+        
+    except exc.SQLAlchemyError as e:
+        current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
+        return Response(json.dumps({
+            "status": "failed",
+            "error": "error occured during DB Operation ",
+            "data": None
+        }),
+            status=500,
+            mimetype="application/json"
+        )
+    
     except Exception as e:
         return Response(json.dumps({
             "status": "failed",
@@ -142,13 +158,7 @@ def handle_signin():
                 # checking for password match
                 if bcrypt.check_password_hash(user.passwd, data["password"]):
                     # generating otp if password matched
-                    one_time_code = str(otp_service.GenerateOtp())
-                    otp_obj = Otp(
-                        user_id_fk=user.user_id,
-                        otp=one_time_code
-                    )
-                    db.session.add(otp_obj)
-                    db.session.commit()
+                    one_time_code = verification_repository.create_otp(user)
                     # sending mail for otp verification
                     otp = " ".join(one_time_code)
                     mail_data = {
@@ -199,6 +209,17 @@ def handle_signin():
                     mimetype="application/json"
                 )
 
+    except exc.SQLAlchemyError as e:
+        current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
+        return Response(json.dumps({
+            "status": "failed",
+            "error": "error occured during DB Operation ",
+            "data": None
+        }),
+            status=500,
+            mimetype="application/json"
+        ) 
+
     except Exception as e:
         print(e)
         return Response(json.dumps({
@@ -210,16 +231,13 @@ def handle_signin():
             mimetype="application/json"
         )
 
-
 # route for verifysignin  api/v1/auth/verifysignin
 @auth.route('/verifysignin', methods=["GET"])
 def handle_verifysignin():
     try:
         email = request.args.get('email')
         otp = int(request.args.get('otp'))
-        db_res = db.session.query(User.email, Otp.otp, Otp.expire_in) \
-            .join(User.otp).filter(User.email == email, Otp.otp == otp) \
-            .order_by(Otp.id.desc()).first()
+        db_res = verification_repository.get_otp(email,otp)
         if db_res:
             if db_res[2] <= datetime.now():
                 return Response(
@@ -277,6 +295,18 @@ def handle_verifysignin():
                 status=200,
                 mimetype="application/json"
             )
+        
+    except exc.SQLAlchemyError as e:
+        current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
+        return Response(json.dumps({
+            "status": "failed",
+            "error": "error occured during DB Operation ",
+            "data": None
+        }),
+            status=500,
+            mimetype="application/json"
+        ) 
+    
     except Exception as e:
         return Response(json.dumps({
             "status": "failed",
@@ -294,13 +324,7 @@ def handle_forgotpassword2():
         req_email = request.args.get("email")
         user = user_repository.get_user_by_email(req_email)
         if user:
-            passwd_obj = PasswordReset(
-                user_id_fk=user.user_id,
-                token=hashlib.md5(f"{user['email']}".encode('utf-8')).hexdigest(),
-                consumed=False
-            )
-            db.session.add(passwd_obj)
-            db.session.commit()
+            verification_repository.create_password(user)
             return Response(
                 json.dumps({}),
                 status=200,
@@ -316,6 +340,17 @@ def handle_forgotpassword2():
                 status=200,
                 mimetype="application/json"
             )
+        
+    except exc.SQLAlchemyError as e:
+        current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
+        return Response(json.dumps({
+            "status": "failed",
+            "error": "error occured during DB Operation ",
+            "data": None
+        }),
+            status=500,
+            mimetype="application/json"
+        ) 
 
     except:
         return Response(json.dumps({
@@ -334,21 +369,28 @@ def handle_forgotpassword(token):
     try:
         data = request.json
         if "email" in data and "password" in data:
-
-            db_res = db.session.query(User.is_active, PasswordReset.expire_in, PasswordReset.consumed).join(
-                User.reset_pd).filter(
-                User.email == data["email"], PasswordReset.token == token).order_by(PasswordReset.id.desc()).first()
+            db_res = verification_repository.get_password_reset(data["email"],token)
 
             if db_res[0] and db_res[1] <= datetime.now() and not db_res[2]:
                 user = user_repository.get_user_by_email(data["email"])
-                user.passwd = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-                db.session.add(user)
-                db.session.commit()
+                updated_data =user_repository.update_user_password(user, data["password"])
                 return Response(
                     json.dumps({}),
                     status=200,
                     mimetype="application/json"
                 )
+            
+    except exc.SQLAlchemyError as e:
+        current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
+        return Response(json.dumps({
+            "status": "failed",
+            "error": "error occured during DB Operation ",
+            "data": None
+        }),
+            status=500,
+            mimetype="application/json"
+        ) 
+    
     except:
         return Response(json.dumps({
             "status": "failed",
@@ -382,13 +424,7 @@ def handle_resend(operation):
                     mimetype="application/json"
                 )
             if operation == "otp":
-                one_time_code = str(otp_service.GenerateOtp())
-                otp_obj = Otp(
-                    user_id_fk=user.user_id,
-                    otp=one_time_code
-                )
-                db.session.add(otp_obj)
-                db.session.commit()
+                one_time_code = verification_repository.create_otp(user)
                 # sending mail for otp verification
                 otp = " ".join(one_time_code)
                 mail_data = {
@@ -407,6 +443,18 @@ def handle_resend(operation):
                     status=200,
                     mimetype="application/json"
                 )
+            
+    except exc.SQLAlchemyError as e:
+        current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
+        return Response(json.dumps({
+            "status": "failed",
+            "error": "error occured during DB Operation ",
+            "data": None
+        }),
+            status=500,
+            mimetype="application/json"
+        ) 
+    
     except Exception as e:
         print(e)
         return Response(json.dumps({

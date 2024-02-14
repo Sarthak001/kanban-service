@@ -1,17 +1,7 @@
-import hashlib
-from flask import request, Response, json, Blueprint
-from src.models.password_reset_model import PasswordReset
-from src.models.user_model import User
-from src.models.user_role_model import UserRole
-from src.models.otp_model import Otp
-from src.models.board_model import Board
-from src.models.task_model import Task
-from src import bcrypt, db, config
-from src.models.verification_model import UserVerification
-from src.utils import otp_service, mail_service
-import base64
-import jwt
-import os
+from flask import request, Response, json, Blueprint,current_app
+from src.repositories import task_repository
+from sqlalchemy import exc 
+
 
 
 task = Blueprint("task", __name__)
@@ -28,13 +18,7 @@ def get_task(id = None):
 def create_task():
     try:
         data = request.json
-        task_obj = Task(
-            task_name = data['task_name'],
-            board_id_fk = int(data['board_id_fk']),
-            board_list_fk = int(data['board_list_fk'])
-        )
-        db.session.add(task_obj)
-        db.session.commit()
+        task_repository.create_task(data['task_name'],int(data['board_id_fk']), int(data['board_list_fk']))
         return Response(
                         json.dumps(
                             {
@@ -47,6 +31,18 @@ def create_task():
                         status=200,
                         mimetype="application/json"
                         )
+    
+    except exc.SQLAlchemyError as e:
+        current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
+        return Response(json.dumps({
+            "status": "failed",
+            "error": "error occured during DB Operation ",
+            "data": None
+        }),
+            status=500,
+            mimetype="application/json"
+        )
+    
     except Exception as e:
         return Response(
                     json.dumps(
