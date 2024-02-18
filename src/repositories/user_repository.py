@@ -3,7 +3,9 @@ from src.models.user_model import User
 from src.models.user_role_model import UserRole
 from random import randint
 
-
+def get_user_by_id(id):
+    user = User.query.filter_by(user_id = id).first()
+    return user
 
 def get_user_by_email(email):
     user = User.query.filter_by(email=email).first()

@@ -1,5 +1,6 @@
 from src import db
 from src.models.board_model import Board
+from src.models.board_member import BoardMember
 
 
 def get_board_by_id(id):
@@ -32,3 +33,6 @@ def create_board(boardname,id):
     db.session.add(board_obj)
     db.session.commit()
 
+def get_board_members(id):
+    db_res = db.session.query(BoardMember).filter(BoardMember.board_id_fk == id).all()
+    return db_res

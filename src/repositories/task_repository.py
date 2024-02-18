@@ -1,8 +1,9 @@
 from src import db
 from src.models.task_model import Task
 
-def get_task_by_id():
-    pass
+def get_task_by_board_id(id):
+    db_res = db.session.query(Task).filter(Task.board_id_fk==id).all()
+    return db_res
 
 def get_all_tasks():
     pass

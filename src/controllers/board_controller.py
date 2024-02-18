@@ -181,6 +181,58 @@ def get_board(id = None):
                 )
         
 
+# route for getboardmembers api/v1/board/boardmembers/<id>
+@board.route('/boardmembers/<int:id>',methods = ['GET'])
+@jwt_required
+def get_board_members(id):
+    try:
+        data = request.current_user
+        db_res = board_repository.get_board_members(int(id))
+        user_details = user_repository.get_user_by_id(int(db_res[0].member_fk))
+        return Response(
+                        json.dumps(
+                            {
+                                "status": "sucess",
+                                "error": None,
+                                "data": {
+                                    "message": f"Boards Members Details!!",
+                                    "boards__member_details" : {
+                                        "Created At" : user_details.created_at,
+                                        "Is Active" : user_details.is_active,
+                                        "User Name" : user_details.user_name,
+                                        "Id" : user_details.user_id,
+                                        
+                                    }
+                                }
+                            }),
+                        status=200,
+                        mimetype="application/json"
+                        )
+    
+    except exc.SQLAlchemyError as e:
+        current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
+        return Response(json.dumps({
+            "status": "failed",
+            "error": "error occured during DB Operation ",
+            "data": None
+        }),
+            status=500,
+            mimetype="application/json"
+        )
+    
+    except Exception as e:
+        print(e)
+        return Response(
+                    json.dumps(
+                        {
+                            "status": "Failed",
+                            "error": "Internal Server Error",
+                            "data": None
+                        }),
+                    status=500,
+                    mimetype="application/json"
+                )
+
 # route for updateboard  api/v1/board/updateboard/<id>
 @board.route('/updateboard/<int:id>',methods = ['GET','PATCH'])
 @jwt_required
