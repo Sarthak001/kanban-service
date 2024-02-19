@@ -27,7 +27,7 @@ def handle_signup():
                                 mimetype="application/json")
             else:
                 role = user_repository.get_user_role()
-                user_obj = user_repository.create_user(role[0],data["first_name"],data["last_name"],data["email"],data["password"])
+                user_obj = user_repository.create_user(role,data["first_name"],data["last_name"],data["email"],data["password"])
 
                 print(user_obj.email)
                 token_hash = hashlib.md5(f"{user_obj.email}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".encode('utf-8')).hexdigest()
