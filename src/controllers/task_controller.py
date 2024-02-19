@@ -255,10 +255,13 @@ def create_task():
                     mimetype="application/json"
                 )
 
-@task.route('/updatetask', methods = ['PATCH'])
+@task.route('/updatetask/<int:task_id>', methods = ['PATCH'])
 @jwt_required    
-def update_task():
+def update_task(task_id = None):
     try:
+        if id:
+            pass
+
         data = request.json
         task_id = request.args.get('id')
         task_obj = task_repository.get_task_by_id(int(task_id))

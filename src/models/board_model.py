@@ -10,4 +10,4 @@ class Board(db.Model):
 
     board_member = db.relationship("BoardMember",backref = "board")
     board_list = db.relationship("BoardList",backref= "board")
-    tasl = db.relationship("Task",backref = 'board')
+    task = db.relationship("Task",backref = 'board')

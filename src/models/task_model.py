@@ -1,5 +1,6 @@
 from src import db
 from datetime import datetime, timedelta
+from sqlalchemy.schema import Sequence
 
 
 def customFunc():
@@ -9,8 +10,7 @@ def customFunc():
 
 class Task(db.Model):
     __tablename__ = "tasks"
-    id = db.Column(db.Integer(),primary_key = True,nullable = False)
-    task_id = db.Column(db.Integer(),autoincrement = True, unique = True)
+    task_id = db.Column(db.Integer(),Sequence('task_id_seq', start=1000, increment=1),primary_key = True,nullable = False)
     task_name = db.Column(db.String(20),nullable = False)
     task_description = db.Column(db.String(20),nullable = True)
     priority = db.Column(db.String(20),nullable = True)

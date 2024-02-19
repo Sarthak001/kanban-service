@@ -2,6 +2,6 @@ dist/
 venv/
 .vscode/
 __pycache__/
-
+src/logfiles
 .env
 
