@@ -10,7 +10,7 @@ def customFunc():
 class Task(db.Model):
     __tablename__ = "tasks"
     id = db.Column(db.Integer(),primary_key = True,nullable = False)
-    task_id = db.Column(db.Integer(),default = 1000,autoincrement = True)
+    task_id = db.Column(db.Integer(),autoincrement = True, unique = True)
     task_name = db.Column(db.String(20),nullable = False)
     task_description = db.Column(db.String(20),nullable = True)
     priority = db.Column(db.String(20),nullable = True)
