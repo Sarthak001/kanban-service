@@ -149,42 +149,50 @@ def get_tasks_asssigned():
                     status=500,
                     mimetype="application/json"
                 )
-    
+
+@task.route('/gettask',methods = ['GET'])
 @task.route('/gettask/<int:id>',methods = ["GET"])    
 @jwt_required
-def get_task(id):
+def get_task(id = None):
     try:
-        db_res = task_repository.get_task_by_id(id)
-        if not db_res:
-            return Response(json.dumps(
-                            {
-                                "status": "Sucess",
-                                "error": None,
-                                "data": {
-                                    "message": f"No such Id exists!!"
-                            }
-                        }),
-                        status=200,
-                        mimetype="application/json"
-                        )
+        if id == None:
+            db_res = task_repository.get_all_tasks()
         else:
-            task = [{
-                                        'id': db_res[0].task_id,
-                                        'task_name' :db_res[0].task_name,
-                                        'assigned_to':db_res[0].assigned_to,
-                                        'board_list':db_res[0].board_list_fk,
-                                        'created_at':db_res[0].created_at,
-                                        'due_date':db_res[0].due_date    
-                                }]
-            return Response(json.dumps(
-                            {
-                                "status": "Sucess",
-                                "error": None,
-                                "data": task
-                        }),
-                        status=200,
-                        mimetype="application/json"
-                        )
+            db_res = task_repository.get_task_by_id(id)
+            if not db_res:
+                return Response(json.dumps(
+                                {
+                                    "status": "Sucess",
+                                    "error": None,
+                                    "data": {
+                                        "message": f"No such Id exists!!"
+                                }
+                            }),
+                            status=200,
+                            mimetype="application/json"
+                )
+        task = []
+        for i in db_res:                
+            task.append([{
+                                    'id': i.task_id,
+                                    'task_name' :i.task_name,
+                                    'task_description':i.task_description,
+                                    'assigned_to':i.assigned_to,
+                                    'board' : i.board_id_fk,
+                                    'board_list':i.board_list_fk,
+                                    "priority" : i.priority,
+                                    'created_at':i.created_at,
+                                    'due_date':i.due_date    
+                            }])
+        return Response(json.dumps(
+                        {
+                            "status": "Sucess",
+                            "error": None,
+                            "data": task
+                    }),
+                    status=200,
+                    mimetype="application/json"
+                    )
     except exc.SQLAlchemyError as e:
         current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
         return Response(json.dumps({
@@ -213,10 +221,11 @@ def get_task(id):
 
 # route for createtask  api/v1/task/createtask
 @task.route('/createtask',methods = ['POST'])
+@jwt_required
 def create_task():
     try:
         data = request.json
-        task_repository.create_task(data['task_name'],int(data['board_id_fk']), int(data['board_list_fk']))
+        task_repository.create_task(data)
         return Response(
                         json.dumps(
                             {
@@ -231,6 +240,7 @@ def create_task():
                         )
     
     except exc.SQLAlchemyError as e:
+        print(e)
         current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
         return Response(json.dumps({
             "status": "failed",
@@ -242,6 +252,7 @@ def create_task():
         )
     
     except Exception as e:
+        print(e)
         return Response(
                     json.dumps(
                         {
@@ -255,15 +266,24 @@ def create_task():
                     mimetype="application/json"
                 )
 
-@task.route('/updatetask/<int:task_id>', methods = ['PATCH'])
+@task.route('/updatetask/', methods = ['PATCH'])
 @jwt_required    
-def update_task(task_id = None):
+def update_task():
     try:
-        if id:
-            pass
-
         data = request.json
-        task_id = request.args.get('id')
+        if "task_id" in data:
+            return Response(json.dumps(
+                            {
+                                "status": "Sucess",
+                                "error": None,
+                                "data": {
+                                    "message": f"Task Id cannot be updated!!"
+                            }
+                        }),
+                        status=200,
+                        mimetype="application/json"
+                        )
+        task_id = request.args.get('task_id')
         task_obj = task_repository.get_task_by_id(int(task_id))
         if not task_obj:
             return Response(json.dumps(
@@ -292,6 +312,7 @@ def update_task(task_id = None):
                         ) 
         
     except exc.SQLAlchemyError as e:
+        print(e)
         current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
         return Response(json.dumps({
             "status": "failed",
@@ -321,7 +342,7 @@ def update_task(task_id = None):
 @jwt_required
 def delete_task():
     try:
-        task_id = request.args.get('id')
+        task_id = request.args.get('task_id')
         task_obj = task_repository.get_task_by_id(int(task_id))
         if not task_obj:
             return Response(json.dumps(
@@ -336,7 +357,7 @@ def delete_task():
                         mimetype="application/json"
                         )
         else:
-            task_repository.delete_task(task_obj)
+            task_repository.delete_task(task_obj[0])
             return Response(json.dumps(
                             {
                                 "status": "Sucess",

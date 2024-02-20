@@ -41,7 +41,7 @@ service.config['MAIL_USE_SSL'] = True
 mail = Mail(service)
 
 # Path for our local sql lite database
-service.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("SQLALCHEMY_DATABASE_URI_DEV")
+service.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://kanban:strongkanbanpass@localhost:5432/KANBAN_SERVICE"
 
 # To specify to track modifications of objects and emit signals
 service.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS")

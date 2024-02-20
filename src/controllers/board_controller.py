@@ -91,9 +91,10 @@ def get_board(id = None):
         if id == None:
             db_res = board_repository.get_board_owned(int(data['user_id']))
             board_details= []
-            for i in db_res:
-                board_details.append([json.dumps(i.board_id),json.dumps(i.board_name),json.dumps(i.created_at)])
             if db_res:
+                for i in db_res:
+                    board_details.append([json.dumps(i.board_id),json.dumps(i.board_name),json.dumps(i.created_at)])
+    
                 return Response(
                         json.dumps(
                             {
@@ -188,26 +189,42 @@ def get_board_members(id):
     try:
         data = request.current_user
         db_res = board_repository.get_board_members(int(id))
-        user_details = user_repository.get_user_by_id(int(db_res[0].member_fk))
-        return Response(
-                        json.dumps(
-                            {
-                                "status": "sucess",
-                                "error": None,
-                                "data": {
-                                    "message": f"Boards Members Details!!",
-                                    "boards__member_details" : {
-                                        "Created At" : user_details.created_at,
-                                        "Is Active" : user_details.is_active,
-                                        "User Name" : user_details.user_name,
-                                        "Id" : user_details.user_id,
+        if db_res:
+            user_details = user_repository.get_user_by_id(int(db_res[0].member_fk))
+            return Response(
+                            json.dumps(
+                                {
+                                    "status": "sucess",
+                                    "error": None,
+                                    "data": {
+                                        "message": f"Boards Members Details!!",
+                                        "boards__member_details" : {
+                                            "Created At" : user_details.created_at,
+                                            "Is Active" : user_details.is_active,
+                                            "User Name" : user_details.user_name,
+                                            "Id" : user_details.user_id,
                                         
+                                        }
                                     }
-                                }
-                            }),
-                        status=200,
-                        mimetype="application/json"
-                        )
+                                }),
+                            status=200,
+                            mimetype="application/json"
+                            )
+        else:
+            return Response(
+                            json.dumps(
+                                {
+                                    "status": "sucess",
+                                    "error": None,
+                                    "data": {
+                                        "message": f"Board Members don't exist!!"
+                                    }
+                                
+                                }),
+                            status=200,
+                            mimetype="application/json"
+                            )
+
     
     except exc.SQLAlchemyError as e:
         current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
