@@ -13,7 +13,7 @@ def get_user_by_email(email):
 
 def get_user_role(user_role = None):
     if user_role == None :
-        user_role = "normalusers"
+        user_role = "normal user"
     role = db.session.query(UserRole.role_id).filter(UserRole.role_name == user_role).first()
     return role
 

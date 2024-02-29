@@ -26,3 +26,4 @@ structlog==24.1.0
 typing_extensions==4.9.0
 urllib3==2.2.0
 Werkzeug==3.0.1
+psycopg2==2.9.9
