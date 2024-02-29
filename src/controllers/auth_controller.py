@@ -191,7 +191,7 @@ def handle_signin():
                                     "message": f"Wrong Password!"
                                 }
                             }),
-                        status=200,
+                        status=401,
                         mimetype="application/json"
                     )
             else:
@@ -205,7 +205,7 @@ def handle_signin():
                                 "message": f"User does not exists or either you did not verified your email. "
                             }
                         }),
-                    status=200,
+                    status=401,
                     mimetype="application/json"
                 )
 
@@ -232,12 +232,13 @@ def handle_signin():
         )
 
 # route for verifysignin  api/v1/auth/verifysignin
-@auth.route('/verifysignin', methods=["GET"])
+@auth.route('/verifysignin', methods=["POST"])
 def handle_verifysignin():
     try:
-        email = request.args.get('email')
-        otp = int(request.args.get('otp'))
-        db_res = verification_repository.get_otp(email,otp)
+        data = request.json
+        #email = request.args.get('email')
+        #otp = int(request.args.get('otp'))
+        db_res = verification_repository.get_otp(data["email"],int(data["otp"]))
         if db_res:
             if db_res[2] <= datetime.now():
                 return Response(
@@ -252,8 +253,8 @@ def handle_verifysignin():
                     status=200,
                     mimetype="application/json"
                 )
-            if otp == db_res[1]:
-                user_obj = user_repository.get_user_by_email(email)
+            if int(data["otp"]) == db_res[1]:
+                user_obj = user_repository.get_user_by_email(data["email"])
                 # create token
                 payload = {
                     'user_id': str(user_obj.user_id),
@@ -297,6 +298,7 @@ def handle_verifysignin():
             )
         
     except exc.SQLAlchemyError as e:
+        print(e)
         current_app.logger.error("ERROR OCCURED DURING DB OPERATION")
         return Response(json.dumps({
             "status": "failed",
@@ -308,6 +310,7 @@ def handle_verifysignin():
         ) 
     
     except Exception as e:
+        print(e)
         return Response(json.dumps({
             "status": "failed",
             "error": "Internal server error",
