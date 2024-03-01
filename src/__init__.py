@@ -8,6 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 # for password hashing
 from flask_bcrypt import Bcrypt
+from flask_cors import CORS
 
 # loading environment variables
 load_dotenv()
@@ -15,6 +16,7 @@ load_dotenv()
 # declaring flask application
 service = Flask(__name__, static_url_path='/static')
 
+CORS(service)
 # calling the service configuration based on the env
 if os.environ.get("ENV") == "PROD":
     config = Config().production_config
