@@ -39,7 +39,8 @@ def create_otp(user):
 
 def get_otp(email,otp):
 
-    db_res = db.session.query(User.email, Otp.otp, Otp.expire_in).join(User.otp).filter(User.email == email, Otp.otp == otp).order_by(Otp.id.desc()).first()
+    db_res = db.session.query(User.email, Otp.otp, Otp.expire_in).join(User.otp).filter(User.email == email).order_by(Otp.id.desc()).first()
+    print(db_res)
     return db_res
 
 def create_password(user):

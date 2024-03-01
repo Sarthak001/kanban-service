@@ -232,13 +232,12 @@ def handle_signin():
         )
 
 # route for verifysignin  api/v1/auth/verifysignin
-@auth.route('/verifysignin', methods=["POST"])
+@auth.route('/verifysignin', methods=["GET"])
 def handle_verifysignin():
     try:
-        data = request.json
-        #email = request.args.get('email')
-        #otp = int(request.args.get('otp'))
-        db_res = verification_repository.get_otp(data["email"],int(data["otp"]))
+        email = request.args.get('email')
+        otp = int(request.args.get('otp'))
+        db_res = verification_repository.get_otp(email,otp)
         if db_res:
             if db_res[2] <= datetime.now():
                 return Response(
@@ -250,11 +249,11 @@ def handle_verifysignin():
                                 "message": f"OTP expired"
                             }
                         }),
-                    status=200,
+                    status=400,
                     mimetype="application/json"
                 )
-            if int(data["otp"]) == db_res[1]:
-                user_obj = user_repository.get_user_by_email(data["email"])
+            if otp == db_res[1]:
+                user_obj = user_repository.get_user_by_email(email)
                 # create token
                 payload = {
                     'user_id': str(user_obj.user_id),
@@ -283,7 +282,7 @@ def handle_verifysignin():
                     "error": "Failed to verify the OTP",
                     "data": None
                 }),
-                status=200,
+                status=403,
                 mimetype="application/json"
             )
         else:
